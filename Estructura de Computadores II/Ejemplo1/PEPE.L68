@@ -1,0 +1,138 @@
+00001048 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 06/10/2021 12:17:40
+
+00000000                             1  *-----------------------------------------------------------
+00000000                             2  * Title      :
+00000000                             3  * Written by :
+00000000                             4  * Date       :
+00000000                             5  * Description:
+00000000                             6  *-----------------------------------------------------------
+00000000                             7  ; =============================================================================
+00000000                             8  ; HEADER
+00000000                             9  ; =============================================================================
+00000000                            10  
+00001000                            11              ORG     $1000
+00001000                            12              INCLUDE "SUBRTN.X68"
+00001000                            13  ; =============================================================================
+00001000                            14  ; SUBROUTINES
+00001000                            15  ; =============================================================================
+00001000                            16  
+00001000                            17  ; -----------------------------------------------------------------------------
+00001000                            18  SHOWHWIN
+00001000                            19  ; SHOWS THE HARDWARE WINDOW
+00001000                            20  ; INPUT    - NONE
+00001000                            21  ; OUTPUT   - NONE
+00001000                            22  ; MODIFIES - NOTHING
+00001000                            23  ; -----------------------------------------------------------------------------
+00001000  48E7 C000                 24              MOVEM.L D0-D1,-(A7)             ; STORE REGISTERS
+00001004  103C 0020                 25              MOVE.B  #32, D0                 ; SPECIFY TASK 32
+00001008  4201                      26              CLR.B   D1                      ; SPECIFY SHOW HARDWARE WINDOW
+0000100A  4E4F                      27              TRAP    #15                     ; SHOW IT!
+0000100C  4CDF 0003                 28              MOVEM.L (A7)+,D0-D1             ; RESTORE REGISTERS
+00001010  4E75                      29              RTS
+00001012                            30  
+00001012                            31  ; -----------------------------------------------------------------------------
+00001012                            32  GTHWADDR
+00001012                            33  ; PUTS THE ADDRESSES WHERE THE 7-SEGMENT DISPLAY, THE LED ARRAY, THE SWITCHES
+00001012                            34  ; AND THE TOGGLE BUTTONS ARE MAPPED IN THE RAM ADDRESSES BEGINNING AT A0 IN
+00001012                            35  ; THE SPECIFIED ORDER.
+00001012                            36  ; INPUT    - A0: ADDRESS TO BEGIN STORING MAPPED HARDWARE ADDRESSES.
+00001012                            37  ; OUTPUT   - ADDRESSES STORED IN RAM.
+00001012                            38  ; MODIFIES - NOTHING
+00001012                            39  ; -----------------------------------------------------------------------------
+00001012  48E7 E0C0                 40              MOVEM.L A0-A1/D0-D2,-(A7)       ; STORE REGISTERS
+00001016  43F9 00001034             41              LEA     .DATA,A1                ; GET POINTER TO THE PARAM. VECTOR
+0000101C  343C 0003                 42              MOVE.W  #3,D2                   ; PREPARE LOOP COUNTER TO SIZE-1
+00001020  103C 0020                 43              MOVE.B  #32,D0                  ; SPECIFY TASK 32
+00001024  1219                      44  .LOOP       MOVE.B  (A1)+,D1                ; GET PARAMETER FROM PARAM. VECTOR
+00001026  4E4F                      45              TRAP    #15                     ; GET THE MAPPING ADDRESS
+00001028  20C1                      46              MOVE.L  D1,(A0)+                ; STORE THE MAPPING ADDRESS
+0000102A  51CA FFF8                 47              DBRA.W  D2,.LOOP                ; LOOP FOR ALL PARAMETERS
+0000102E  4CDF 0307                 48              MOVEM.L (A7)+,A0-A1/D0-D2       ; RESTORE REGISTERS
+00001032  4E75                      49              RTS
+00001034                            50  
+00001034                            51              ; TRAP #15 FUNCTION 32 PARAMETERS
+00001034= 01 02 03 07               52  .DATA       DC.B    1,2,3,7
+00001038                            53              DS.W    0
+00001038                            54  
+00001038                            55  -------------------- end include --------------------
+00001038                            56              INCLUDE "VARS.X68"
+00001038                            57  ; =============================================================================
+00001038                            58  ; VARS
+00001038                            59  ; =============================================================================
+00001038                            60  
+00001038                            61  SEGMADDR    DS.L    1                       ; 7-SEGMENT DISPLAY MAPPING ADDRESS
+0000103C                            62  LEDADDR     DS.L    1                       ; LED MAPPING ADDRESS
+00001040                            63  STCHADDR    DS.L    1                       ; SWITCH MAPPING ADDRESS
+00001044                            64  BUTADDR     DS.L    1                       ; BUTTON MAPPING ADDRESS
+00001048                            65  
+00001048                            66  -------------------- end include --------------------
+00001048                            67  
+00001048                            68  ; =============================================================================
+00001048                            69  ; MAIN PROGRAM
+00001048                            70  ; =============================================================================
+00001048                            71  
+00001048  61B6                      72  START       BSR     SHOWHWIN
+0000104A  41F8 1038                 73              LEA     SEGMADDR,A0
+0000104E  61C2                      74              BSR     GTHWADDR
+00001050  2078 1038                 75              MOVE.L  (SEGMADDR), A0
+00001054  2278 1040                 76              MOVE.L  (STCHADDR), A1
+00001058  1011                      77  .LOOP       MOVE.B  (A1),D0
+0000105A  C07C 000F                 78              AND.W   #$0F,D0
+0000105E  6100 0014                 79              BSR     WRTSEGM
+00001062  1011                      80              MOVE.B  (A1),D0
+00001064  E808                      81              LSR.B   #4,D0
+00001066  C07C 000F                 82              AND.W   #$0F,D0
+0000106A  807C 0100                 83              OR.W    #$0100,D0
+0000106E  6100 0004                 84              BSR     WRTSEGM
+00001072  60E4                      85              BRA     .LOOP
+00001074                            86  
+00001074                            87  ; =============================================================================
+00001074                            88  ; SUBROUTINES
+00001074                            89  ; =============================================================================
+00001074                            90  
+00001074                            91  ; -----------------------------------------------------------------------------
+00001074                            92  WRTSEGM
+00001074                            93  ; DISPLAYS A NUMBER BETWEEN $0 AND $F IN THE SPECIFIED 7-SEGMENT DISPLAY
+00001074                            94  ; INPUT    - D0.W: MSB: DISPLAY NUMBER, LSB VALUE ($0-$F) TO SHOW. A DISPLAY
+00001074                            95  ;                  NUMBER OF 0 MEANS THE RIGHTMOST DISPLAY WHILST A VALUE OF
+00001074                            96  ;                  7 MEANS THE LEFTMOST.
+00001074                            97  ;            A0  : DISPLAY SET MAPPING ADDRESS
+00001074                            98  ; OUTPUT   - NONE
+00001074                            99  ; MODIFIES - NOTHING
+00001074                           100  ; -----------------------------------------------------------------------------
+00001074  48E7 C040                101              MOVEM.L D0-D1/A1,-(A7)
+00001078  3200                     102              MOVE.W  D0,D1
+0000107A  C0BC 000000FF            103              AND.L   #$FF,D0
+00001080  4641                     104              NOT.W   D1
+00001082  EE49                     105              LSR.W   #7,D1
+00001084  C2BC 0000000E            106              AND.L   #$0E,D1
+0000108A  43F9 0000109C            107              LEA     .DATA,A1
+00001090  11B1 0000 1000           108              MOVE.B  (A1,D0),(A0,D1)
+00001096  4CDF 0203                109              MOVEM.L (A7)+,D0-D1/A1
+0000109A  4E75                     110              RTS
+0000109C= 3F 06 5B 4F 66 6D ...    111  .DATA       DC.B    $3F,$06,$5B,$4F,$66,$6D,$7D,$07,$7F,$6F,$77,$7C,$39,$5E,$79
+000010AB= 71                       112              DC.B    $71
+000010AC                           113  
+000010AC                           114              END     START
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+BUTADDR             1044
+GTHWADDR            1012
+GTHWADDR:DATA       1034
+GTHWADDR:LOOP       1024
+LEDADDR             103C
+SEGMADDR            1038
+SHOWHWIN            1000
+START               1048
+START:LOOP          1058
+STCHADDR            1040
+WRTSEGM             1074
+WRTSEGM:DATA        109C
